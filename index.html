@@ -122,23 +122,54 @@
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbynhjMgCuDxAQunJp1uBML2xooiU7CP9ZQoVOx-1KBhFN34rffSQp2vcE_jBeElyZqt/exec";
 
       function processFile(input) {
-        var file = input.files[0];
-        if (!file) return;
+    var file = input.files[0];
+    if (!file) return;
 
-        var statusDiv = document.getElementById('status');
-        statusDiv.className = 'loading';
-        statusDiv.innerHTML = "Subiendo foto, por favor espera...";
+    var statusDiv = document.getElementById('status');
+    statusDiv.className = 'loading';
+    statusDiv.innerHTML = "Subiendo foto, por favor espera...";
 
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          var base64Data = e.target.result;
-          var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var base64Data = e.target.result;
+      var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
 
-          var payload = {
-            base64: base64Data,
-            fileName: fileName
-          };
+      // Nombre de callback único para evitar duplicados
+      var callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
 
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+
+        if (data.status === "success") {
+          statusDiv.className = 'success';
+          statusDiv.innerHTML = "¡Foto subida con éxito!";
+          input.value = ""; 
+        } else {
+          statusDiv.className = 'error';
+          statusDiv.innerHTML = "Error al guardar en Drive: " + data.message;
+        }
+      };
+
+      // Crear script dinámico para realizar la petición JSONP
+      var script = document.createElement('script');
+      var urlParams = "?callback=" + callbackName + 
+                      "&fileName=" + encodeURIComponent(fileName) + 
+                      "&base64=" + encodeURIComponent(base64Data);
+
+      script.src = SCRIPT_URL + urlParams;
+      script.onerror = function() {
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = "Error de conexión con Google Drive.";
+        delete window[callbackName];
+        document.body.removeChild(script);
+      };
+
+      document.body.appendChild(script);
+    };
+
+    reader.readAsDataURL(file);
+  };
           // Envío directo a la API de Google mediante fetch
           fetch(SCRIPT_URL, {
             method: 'POST',
