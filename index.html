@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis XV - Caty</title>
     
-    <!-- Importación de Fuentes de Google -->
+    <!-- Fuentes de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
@@ -70,7 +70,7 @@
         border: none;
         border-radius: 10px;
         cursor: pointer;
-        transition: transform 0.1s ease, opacity 0.2s ease;
+        transition: transform 0.1s ease;
       }
       .btn:active {
         transform: scale(0.98);
@@ -117,82 +117,55 @@
       <div id="status"></div>
     </div>
 
+    <!-- Formulario oculto que envía los datos pesados por POST -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <form id="uploadForm" method="POST" target="hidden_iframe" style="display:none;">
+      <input type="hidden" name="base64" id="formBase64">
+      <input type="hidden" name="fileName" id="formFileName">
+    </form>
+
     <script>
-      // === REEMPLAZA ESTA URL CON LA URL DE TU DESPLIEGUE DE GOOGLE APPS SCRIPT ===
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbynhjMgCuDxAQunJp1uBML2xooiU7CP9ZQoVOx-1KBhFN34rffSQp2vcE_jBeElyZqt/exec";
+      // === REEMPLAZA AQUÍ CON TU URL DE APPS SCRIPT ===
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfAdguWo8C3tR1_AS-7dTlsNuCkrZ2r-lVOYUKyuYR-j74bGAGp-WPWqRNSJVjhGGz/exec";
+
+      const uploadForm = document.getElementById('uploadForm');
+      uploadForm.action = SCRIPT_URL;
 
       function processFile(input) {
-    var file = input.files[0];
-    if (!file) return;
+        var file = input.files[0];
+        if (!file) return;
 
-    var statusDiv = document.getElementById('status');
-    statusDiv.className = 'loading';
-    statusDiv.innerHTML = "Subiendo foto, por favor espera...";
+        var statusDiv = document.getElementById('status');
+        statusDiv.className = 'loading';
+        statusDiv.innerHTML = "Subiendo foto, por favor espera...";
 
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var base64Data = e.target.result;
-      var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var base64Data = e.target.result;
+          var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
 
-      // Nombre de callback único para evitar duplicados
-      var callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+          document.getElementById('formBase64').value = base64Data;
+          document.getElementById('formFileName').value = fileName;
 
-      window[callbackName] = function(data) {
-        delete window[callbackName];
-        document.body.removeChild(script);
-
-        if (data.status === "success") {
-          statusDiv.className = 'success';
-          statusDiv.innerHTML = "¡Foto subida con éxito!";
+          // Enviar el formulario por detrás
+          uploadForm.submit();
           input.value = ""; 
-        } else {
-          statusDiv.className = 'error';
-          statusDiv.innerHTML = "Error al guardar en Drive: " + data.message;
-        }
-      };
-
-      // Crear script dinámico para realizar la petición JSONP
-      var script = document.createElement('script');
-      var urlParams = "?callback=" + callbackName + 
-                      "&fileName=" + encodeURIComponent(fileName) + 
-                      "&base64=" + encodeURIComponent(base64Data);
-
-      script.src = SCRIPT_URL + urlParams;
-      script.onerror = function() {
-        statusDiv.className = 'error';
-        statusDiv.innerHTML = "Error de conexión con Google Drive.";
-        delete window[callbackName];
-        document.body.removeChild(script);
-      };
-
-      document.body.appendChild(script);
-    };
-
-    reader.readAsDataURL(file);
-  };
-          // Envío directo a la API de Google mediante fetch
-          fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Evita restricciones CORS desde GitHub Pages
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          })
-          .then(function() {
-            // Nota: con mode 'no-cors' la respuesta es opaca, pero si no lanzó error la petición fue exitosa
-            statusDiv.className = 'success';
-            statusDiv.innerHTML = "¡Foto subida con éxito!";
-            input.value = ""; 
-          })
-          .catch(function(err) {
-            statusDiv.className = 'error';
-            statusDiv.innerHTML = "Error al subir la foto: " + err.message;
-          });
         };
 
         reader.readAsDataURL(file);
       }
+
+      // Escuchar la respuesta devuelta por Google desde el iframe oculto
+      window.addEventListener('message', function(e) {
+        var statusDiv = document.getElementById('status');
+        if (e.data === 'SUCCESS') {
+          statusDiv.className = 'success';
+          statusDiv.innerHTML = "¡Foto subida con éxito!";
+        } else if (typeof e.data === 'string' && e.data.startsWith('ERROR:')) {
+          statusDiv.className = 'error';
+          statusDiv.innerHTML = "Error al subir: " + e.data.replace('ERROR:', '');
+        }
+      });
     </script>
 
   </body>
