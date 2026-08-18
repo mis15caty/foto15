@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
+    <meta charset="UTF-8">
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis XV - Caty</title>
     
+    <!-- Fuentes de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
@@ -116,39 +118,44 @@
       <div id="status"></div>
     </div>
 
+    <!-- Formulario e iframe ocultos para envío optimizado -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <form id="uploadForm" method="POST" target="hidden_iframe" style="display:none;">
+      <input type="hidden" name="base64" id="formBase64">
+      <input type="hidden" name="fileName" id="formFileName">
+    </form>
+
     <script>
+      // === REEMPLAZA AQUÍ CON TU URL DE APPS SCRIPT ===
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9Wo_w1frxeEMICtWj735w0T4wq4xUnJ7SuIkH69M6w-MZhrePwi5dj_BE0kFKqgmu/exec";
+
+      const uploadForm = document.getElementById('uploadForm');
+      uploadForm.action = SCRIPT_URL;
+
       function processFile(input) {
         var file = input.files[0];
         if (!file) return;
 
         var statusDiv = document.getElementById('status');
         statusDiv.className = 'loading';
-        statusDiv.innerHTML = "⚡ Procesando foto...";
+        statusDiv.innerHTML = "⚡ Comprimiendo y optimizando foto...";
 
-        // Redimensionar y optimizar la foto antes de enviar
+        // Redimensionar y comprimir la imagen en el cliente
         resizeImage(file, 1280, 0.7, function(compressedBase64) {
           statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
+
           var fileName = "Foto_" + new Date().getTime() + ".jpg";
 
-          google.script.run
-            .withSuccessHandler(function(response) {
-              if (response.indexOf("Error") === -1) {
-                statusDiv.className = 'success';
-                statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
-              } else {
-                statusDiv.className = 'error';
-                statusDiv.innerHTML = response;
-              }
-              input.value = "";
-            })
-            .withFailureHandler(function(err) {
-              statusDiv.className = 'error';
-              statusDiv.innerHTML = "Error al subir: " + err.message;
-            })
-            .uploadFile(compressedBase64, fileName);
+          document.getElementById('formBase64').value = compressedBase64;
+          document.getElementById('formFileName').value = fileName;
+
+          // Enviar el formulario comprimido
+          uploadForm.submit();
+          input.value = ""; 
         });
       }
 
+      // Función que comprime la foto rápido antes de subirla
       function resizeImage(file, maxWidth, quality, callback) {
         var reader = new FileReader();
         reader.onload = function(e) {
@@ -169,6 +176,7 @@
             var ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
+            // Genera la imagen reducida en JPEG optimizado
             var dataUrl = canvas.toDataURL('image/jpeg', quality);
             callback(dataUrl);
           };
@@ -176,6 +184,18 @@
         };
         reader.readAsDataURL(file);
       }
+
+      // Confirmación recibida desde Google Apps Script
+      window.addEventListener('message', function(e) {
+        var statusDiv = document.getElementById('status');
+        if (e.data === 'SUCCESS') {
+          statusDiv.className = 'success';
+          statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
+        } else if (typeof e.data === 'string' && e.data.startsWith('ERROR:')) {
+          statusDiv.className = 'error';
+          statusDiv.innerHTML = "Error al subir: " + e.data.replace('ERROR:', '');
+        }
+      });
     </script>
 
   </body>
