@@ -115,7 +115,7 @@
     </div>
 
     <script>
-      // Asegúrate de usar la URL final de tu despliegue web (/exec)
+      // === REEMPLAZA ESTA URL CON TU URL COPIADA DEL PASO 1 ===
       var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyDWt92lTFItvHm-juqJmHddpTlMlmvHgMaB-lNxnUJZgRKBbxnCIo92LW6PrD8qImc/exec";
 
       function processFile(input) {
@@ -150,7 +150,7 @@
           })
           .catch(function(err) {
             statusDiv.className = 'error';
-            statusDiv.innerHTML = "Error de red al intentar subir.";
+            statusDiv.innerHTML = "Error al intentar subir la foto.";
             input.value = "";
           });
         });
