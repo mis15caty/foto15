@@ -117,52 +117,59 @@
       <div id="status"></div>
     </div>
 
-    <script>
-      // === REEMPLAZA ESTA URL CON LA URL DE TU DESPLIEGUE DE GOOGLE APPS SCRIPT ===
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAKr6uGWAepwfnSDoadYdRnnN-yK15tqgbZMStHOWmFHOrQH7ceIxz8QVB2agyeOP3/exec";
+   <script>
+  // === REEMPLAZA CON LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT ===
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDi7-Zf4P77vsm7Jr-G-LAS6zmpDA76wCZex6yfcckk0MrqPh-wyerlIfHUhliTTgE/exec";
 
-      function processFile(input) {
-        var file = input.files[0];
-        if (!file) return;
+  function processFile(input) {
+    var file = input.files[0];
+    if (!file) return;
 
-        var statusDiv = document.getElementById('status');
-        statusDiv.className = 'loading';
-        statusDiv.innerHTML = "Subiendo foto, por favor espera...";
+    var statusDiv = document.getElementById('status');
+    statusDiv.className = 'loading';
+    statusDiv.innerHTML = "Subiendo foto, por favor espera...";
 
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          var base64Data = e.target.result;
-          var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var base64Data = e.target.result;
+      var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
 
-          var payload = {
-            base64: base64Data,
-            fileName: fileName
-          };
+      // Nombre de callback único para evitar duplicados
+      var callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
 
-          // Envío directo a la API de Google mediante fetch
-          fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Evita restricciones CORS desde GitHub Pages
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          })
-          .then(function() {
-            // Nota: con mode 'no-cors' la respuesta es opaca, pero si no lanzó error la petición fue exitosa
-            statusDiv.className = 'success';
-            statusDiv.innerHTML = "¡Foto subida con éxito!";
-            input.value = ""; 
-          })
-          .catch(function(err) {
-            statusDiv.className = 'error';
-            statusDiv.innerHTML = "Error al subir la foto: " + err.message;
-          });
-        };
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
 
-        reader.readAsDataURL(file);
-      }
-    </script>
+        if (data.status === "success") {
+          statusDiv.className = 'success';
+          statusDiv.innerHTML = "¡Foto subida con éxito!";
+          input.value = ""; 
+        } else {
+          statusDiv.className = 'error';
+          statusDiv.innerHTML = "Error al guardar en Drive: " + data.message;
+        }
+      };
 
+      // Crear script dinámico para realizar la petición JSONP
+      var script = document.createElement('script');
+      var urlParams = "?callback=" + callbackName + 
+                      "&fileName=" + encodeURIComponent(fileName) + 
+                      "&base64=" + encodeURIComponent(base64Data);
+
+      script.src = SCRIPT_URL + urlParams;
+      script.onerror = function() {
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = "Error de conexión con Google Drive.";
+        delete window[callbackName];
+        document.body.removeChild(script);
+      };
+
+      document.body.appendChild(script);
+    };
+
+    reader.readAsDataURL(file);
+  }
+</script>
   </body>
 </html>
