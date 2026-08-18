@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
+    <meta charset="UTF-8">
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis XV - Caty</title>
     
+    <!-- Importación de Fuentes de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
@@ -68,7 +70,10 @@
         border: none;
         border-radius: 10px;
         cursor: pointer;
-        transition: transform 0.1s ease;
+        transition: transform 0.1s ease, opacity 0.2s ease;
+      }
+      .btn:active {
+        transform: scale(0.98);
       }
       .btn-camera {
         background-color: #007bff;
@@ -83,14 +88,16 @@
         margin-top: 18px;
         font-size: 0.95rem;
         font-weight: 600;
-        min-height: 24px;
       }
-      .loading { color: #e67e22; }
-      .success { color: #27ae60; }
-      .error { color: #c0392b; }
-      
-      /* Ocultar el iframe invisible */
-      iframe { display: none; }
+      .loading {
+        color: #e67e22;
+      }
+      .success {
+        color: #27ae60;
+      }
+      .error {
+        color: #c0392b;
+      }
     </style>
   </head>
   <body>
@@ -99,50 +106,61 @@
       <h2 class="subtituloI">Mis XV</h2>
       <h1 class="cata">Caty</h1>
       
-      <!-- Formulario invisible que se envía directamente a Apps Script -->
-      <!-- IMPORTANTE: Coloca tu URL terminada en /exec en el 'action' -->
-      <form id="uploadForm" action="https://script.google.com/macros/s/AKfycbxznB6VBCfSg4SUIEP18gzG0g1QOI0m9QFK8FY1bLIvbVYPXN5cmkfAhm3jsyOMowEM/exec" method="POST" enctype="multipart/form-data" target="hidden_iframe">
-        
-        <label for="cameraInput" class="btn btn-camera">📷 Sacar foto</label>
-        <input type="file" id="cameraInput" name="file" accept="image/*" capture="environment" onchange="submitForm()">
+      <!-- Botón Sacar Foto (Abre Cámara) -->
+      <label for="cameraInput" class="btn btn-camera">📷 Sacar foto</label>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="processFile(this)">
 
-        <label for="galleryInput" class="btn btn-gallery">🖼️ Subir foto</label>
-        <input type="file" id="galleryInput" name="file" accept="image/*" onchange="submitFormGallery(this)">
-        
-      </form>
-
-      <!-- Iframe para recibir la respuesta de Google sin recargar la página -->
-      <iframe name="hidden_iframe" id="hidden_iframe" onload="onUploadComplete()"></iframe>
+      <!-- Botón Subir Foto (Abre Galería) -->
+      <label for="galleryInput" class="btn btn-gallery">🖼️ Subir foto</label>
+      <input type="file" id="galleryInput" accept="image/*" onchange="processFile(this)">
 
       <div id="status"></div>
     </div>
 
     <script>
-      var isSubmitting = false;
+      // === REEMPLAZA ESTA URL CON LA URL DE TU DESPLIEGUE DE GOOGLE APPS SCRIPT ===
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAKr6uGWAepwfnSDoadYdRnnN-yK15tqgbZMStHOWmFHOrQH7ceIxz8QVB2agyeOP3/exec";
 
-      function submitForm() {
+      function processFile(input) {
+        var file = input.files[0];
+        if (!file) return;
+
         var statusDiv = document.getElementById('status');
         statusDiv.className = 'loading';
-        statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
-        isSubmitting = true;
-        document.getElementById('uploadForm').submit();
-      }
+        statusDiv.innerHTML = "Subiendo foto, por favor espera...";
 
-      function submitFormGallery(input) {
-        // Asignar la imagen seleccionada de la galería al campo activo del formulario
-        if (input.files && input.files[0]) {
-          submitForm();
-        }
-      }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var base64Data = e.target.result;
+          var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
 
-      function onUploadComplete() {
-        if (isSubmitting) {
-          var statusDiv = document.getElementById('status');
-          statusDiv.className = 'success';
-          statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
-          isSubmitting = false;
-          document.getElementById('uploadForm').reset();
-        }
+          var payload = {
+            base64: base64Data,
+            fileName: fileName
+          };
+
+          // Envío directo a la API de Google mediante fetch
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Evita restricciones CORS desde GitHub Pages
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          })
+          .then(function() {
+            // Nota: con mode 'no-cors' la respuesta es opaca, pero si no lanzó error la petición fue exitosa
+            statusDiv.className = 'success';
+            statusDiv.innerHTML = "¡Foto subida con éxito!";
+            input.value = ""; 
+          })
+          .catch(function(err) {
+            statusDiv.className = 'error';
+            statusDiv.innerHTML = "Error al subir la foto: " + err.message;
+          });
+        };
+
+        reader.readAsDataURL(file);
       }
     </script>
 
