@@ -105,11 +105,9 @@
       <h2 class="subtituloI">Mis XV</h2>
       <h1 class="cata">Caty</h1>
       
-      <!-- Botón Sacar Foto (Abre Cámara) -->
       <label for="cameraInput" class="btn btn-camera">📷 Sacar foto</label>
       <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="processFile(this)">
 
-      <!-- Botón Subir Foto (Abre Galería) -->
       <label for="galleryInput" class="btn btn-gallery">🖼️ Subir foto</label>
       <input type="file" id="galleryInput" accept="image/*" onchange="processFile(this)">
 
@@ -117,8 +115,8 @@
     </div>
 
     <script>
-      // === REEMPLAZA ESTA URL CON TU ENLACE DE APPS SCRIPT (/exec) ===
-      var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyDWt92lTFItvHm-juqJmHddpTlMlmvHgMaB-lNxnUJZgRKBbxnCIo92LW6PrD8qImc/exec";
+      // Inserta aquí tu URL final de despliegue de Apps Script (/exec)
+      var WEB_APP_URL = "https://script.google.com/macros/s/TU_ID_DE_DESPLIEGUE/exec";
 
       function processFile(input) {
         var file = input.files[0];
@@ -128,7 +126,7 @@
         statusDiv.className = 'loading';
         statusDiv.innerHTML = "⚡ Procesando foto...";
 
-        resizeImage(file, 1280, 0.7, function(base64Output) {
+        resizeImage(file, 1024, 0.6, function(base64Output) {
           statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
           var fileName = "Foto_" + new Date().getTime() + ".jpg";
 
@@ -138,25 +136,20 @@
 
           fetch(WEB_APP_URL, {
             method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
             body: formData
           })
-          .then(function(response) {
-            return response.json();
-          })
-          .then(function(data) {
-            if (data.status === "SUCCESS") {
-              statusDiv.className = 'success';
-              statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
-            } else {
-              statusDiv.className = 'error';
-              statusDiv.innerHTML = "Error: " + data.message;
-            }
+          .then(function() {
+            statusDiv.className = 'success';
+            statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
             input.value = "";
           })
           .catch(function(err) {
-            // Manejo por restricción de CORS en respuesta de Safari/Chrome
-            statusDiv.className = 'success';
-            statusDiv.innerHTML = "¡Foto enviada con éxito! 🎉";
+            statusDiv.className = 'error';
+            statusDiv.innerHTML = "Error al intentar subir la foto.";
             input.value = "";
           });
         });
@@ -195,7 +188,7 @@
           img.src = e.target.result;
         };
         reader.onerror = function() {
-          alert("Error al leer la foto en el dispositivo.");
+          alert("Error al leer la imagen.");
         };
         reader.readAsDataURL(file);
       }
