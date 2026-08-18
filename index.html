@@ -70,9 +70,6 @@
         cursor: pointer;
         transition: transform 0.1s ease;
       }
-      .btn:active {
-        transform: scale(0.98);
-      }
       .btn-camera {
         background-color: #007bff;
       }
@@ -88,15 +85,12 @@
         font-weight: 600;
         min-height: 24px;
       }
-      .loading {
-        color: #e67e22;
-      }
-      .success {
-        color: #27ae60;
-      }
-      .error {
-        color: #c0392b;
-      }
+      .loading { color: #e67e22; }
+      .success { color: #27ae60; }
+      .error { color: #c0392b; }
+      
+      /* Ocultar el iframe invisible */
+      iframe { display: none; }
     </style>
   </head>
   <body>
@@ -105,93 +99,50 @@
       <h2 class="subtituloI">Mis XV</h2>
       <h1 class="cata">Caty</h1>
       
-      <label for="cameraInput" class="btn btn-camera">📷 Sacar foto</label>
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="processFile(this)">
+      <!-- Formulario invisible que se envía directamente a Apps Script -->
+      <!-- IMPORTANTE: Coloca tu URL terminada en /exec en el 'action' -->
+      <form id="uploadForm" action="https://script.google.com/macros/s/TU_ID_DE_DESPLIEGUE/exec" method="POST" enctype="multipart/form-data" target="hidden_iframe">
+        
+        <label for="cameraInput" class="btn btn-camera">📷 Sacar foto</label>
+        <input type="file" id="cameraInput" name="file" accept="image/*" capture="environment" onchange="submitForm()">
 
-      <label for="galleryInput" class="btn btn-gallery">🖼️ Subir foto</label>
-      <input type="file" id="galleryInput" accept="image/*" onchange="processFile(this)">
+        <label for="galleryInput" class="btn btn-gallery">🖼️ Subir foto</label>
+        <input type="file" id="galleryInput" name="file" accept="image/*" onchange="submitFormGallery(this)">
+        
+      </form>
+
+      <!-- Iframe para recibir la respuesta de Google sin recargar la página -->
+      <iframe name="hidden_iframe" id="hidden_iframe" onload="onUploadComplete()"></iframe>
 
       <div id="status"></div>
     </div>
 
     <script>
-      // === REEMPLAZA ESTA URL CON TU URL COPIADA DEL PASO 1 ===
-      var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwT3LJzxIA-MNLYkj-Ae__JlhrqyR7H1F6TM0sXHj1q1yRbF8g3NfbuyVuSyN2T8bOe/exec";
+      var isSubmitting = false;
 
-      function processFile(input) {
-        var file = input.files[0];
-        if (!file) return;
-
+      function submitForm() {
         var statusDiv = document.getElementById('status');
         statusDiv.className = 'loading';
-        statusDiv.innerHTML = "⚡ Procesando foto...";
-
-        resizeImage(file, 1024, 0.6, function(base64Output) {
-          statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
-          var fileName = "Foto_" + new Date().getTime() + ".jpg";
-
-          var payload = {
-            base64: base64Output,
-            fileName: fileName
-          };
-
-          fetch(WEB_APP_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-              "Content-Type": "text/plain;charset=utf-8"
-            },
-            body: JSON.stringify(payload)
-          })
-          .then(function() {
-            statusDiv.className = 'success';
-            statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
-            input.value = "";
-          })
-          .catch(function(err) {
-            statusDiv.className = 'error';
-            statusDiv.innerHTML = "Error al intentar subir la foto.";
-            input.value = "";
-          });
-        });
+        statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
+        isSubmitting = true;
+        document.getElementById('uploadForm').submit();
       }
 
-      function resizeImage(file, maxWidth, quality, callback) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          var img = new Image();
-          img.onerror = function() {
-            callback(e.target.result);
-          };
-          img.onload = function() {
-            try {
-              var canvas = document.createElement('canvas');
-              var width = img.width;
-              var height = img.height;
+      function submitFormGallery(input) {
+        // Asignar la imagen seleccionada de la galería al campo activo del formulario
+        if (input.files && input.files[0]) {
+          submitForm();
+        }
+      }
 
-              if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width);
-                width = maxWidth;
-              }
-
-              canvas.width = width;
-              canvas.height = height;
-
-              var ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-
-              var dataUrl = canvas.toDataURL('image/jpeg', quality);
-              callback(dataUrl);
-            } catch (err) {
-              callback(e.target.result);
-            }
-          };
-          img.src = e.target.result;
-        };
-        reader.onerror = function() {
-          alert("Error al leer la imagen.");
-        };
-        reader.readAsDataURL(file);
+      function onUploadComplete() {
+        if (isSubmitting) {
+          var statusDiv = document.getElementById('status');
+          statusDiv.className = 'success';
+          statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
+          isSubmitting = false;
+          document.getElementById('uploadForm').reset();
+        }
       }
     </script>
 
