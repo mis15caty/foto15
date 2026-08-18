@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
-    <meta charset="UTF-8">
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis XV - Caty</title>
     
-    <!-- Importación de Fuentes de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
@@ -70,7 +68,7 @@
         border: none;
         border-radius: 10px;
         cursor: pointer;
-        transition: transform 0.1s ease, opacity 0.2s ease;
+        transition: transform 0.1s ease;
       }
       .btn:active {
         transform: scale(0.98);
@@ -88,6 +86,7 @@
         margin-top: 18px;
         font-size: 0.95rem;
         font-weight: 600;
+        min-height: 24px;
       }
       .loading {
         color: #e67e22;
@@ -117,59 +116,67 @@
       <div id="status"></div>
     </div>
 
-   <script>
-  // === REEMPLAZA CON LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT ===
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDi7-Zf4P77vsm7Jr-G-LAS6zmpDA76wCZex6yfcckk0MrqPh-wyerlIfHUhliTTgE/exec";
+    <script>
+      function processFile(input) {
+        var file = input.files[0];
+        if (!file) return;
 
-  function processFile(input) {
-    var file = input.files[0];
-    if (!file) return;
+        var statusDiv = document.getElementById('status');
+        statusDiv.className = 'loading';
+        statusDiv.innerHTML = "⚡ Procesando foto...";
 
-    var statusDiv = document.getElementById('status');
-    statusDiv.className = 'loading';
-    statusDiv.innerHTML = "Subiendo foto, por favor espera...";
+        // Redimensionar y optimizar la foto antes de enviar
+        resizeImage(file, 1280, 0.7, function(compressedBase64) {
+          statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
+          var fileName = "Foto_" + new Date().getTime() + ".jpg";
 
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var base64Data = e.target.result;
-      var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
+          google.script.run
+            .withSuccessHandler(function(response) {
+              if (response.indexOf("Error") === -1) {
+                statusDiv.className = 'success';
+                statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
+              } else {
+                statusDiv.className = 'error';
+                statusDiv.innerHTML = response;
+              }
+              input.value = "";
+            })
+            .withFailureHandler(function(err) {
+              statusDiv.className = 'error';
+              statusDiv.innerHTML = "Error al subir: " + err.message;
+            })
+            .uploadFile(compressedBase64, fileName);
+        });
+      }
 
-      // Nombre de callback único para evitar duplicados
-      var callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+      function resizeImage(file, maxWidth, quality, callback) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var img = new Image();
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var width = img.width;
+            var height = img.height;
 
-      window[callbackName] = function(data) {
-        delete window[callbackName];
-        document.body.removeChild(script);
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
 
-        if (data.status === "success") {
-          statusDiv.className = 'success';
-          statusDiv.innerHTML = "¡Foto subida con éxito!";
-          input.value = ""; 
-        } else {
-          statusDiv.className = 'error';
-          statusDiv.innerHTML = "Error al guardar en Drive: " + data.message;
-        }
-      };
+            canvas.width = width;
+            canvas.height = height;
 
-      // Crear script dinámico para realizar la petición JSONP
-      var script = document.createElement('script');
-      var urlParams = "?callback=" + callbackName + 
-                      "&fileName=" + encodeURIComponent(fileName) + 
-                      "&base64=" + encodeURIComponent(base64Data);
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
 
-      script.src = SCRIPT_URL + urlParams;
-      script.onerror = function() {
-        statusDiv.className = 'error';
-        statusDiv.innerHTML = "Error de conexión con Google Drive.";
-        delete window[callbackName];
-        document.body.removeChild(script);
-      };
+            var dataUrl = canvas.toDataURL('image/jpeg', quality);
+            callback(dataUrl);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    </script>
 
-      document.body.appendChild(script);
-    };
-
-    reader.readAsDataURL(file);
-  }
-</script>
   </body>
 </html>
