@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
   <head>
-    <meta charset="UTF-8">
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis XV - Caty</title>
-    
-    <!-- Fuentes de Google -->
+    <title>Subir Fotos - Mis XV Caty</title>
+    <!-- Importación de fuentes de Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
-
+    
     <style>
       * {
         box-sizing: border-box;
-        margin: 0;
-        padding: 0;
       }
       body {
         font-family: 'Montserrat', sans-serif;
@@ -23,6 +19,7 @@
         padding: 15px;
         background-color: #f4f6f8;
         color: #333;
+        margin: 0;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -34,25 +31,24 @@
         border-radius: 16px;
         width: 100%;
         max-width: 380px;
-        margin: 0 auto;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       }
       .subtituloI {
         font-family: 'Montserrat', sans-serif;
-        color: #B8860B;
-        font-size: 1.1rem;
-        font-weight: 600;
+        color: #D4AF37;
+        font-size: 14px;
         text-transform: uppercase;
         letter-spacing: 4px;
         text-align: center;
-        margin-bottom: 5px;
+        margin: 0 0 5px 0;
+        font-weight: 600;
       }
       .cata {
         font-family: 'Great Vibes', cursive;
-        color: #2c3e50;
-        font-size: 3.8rem;
+        color: #28a745; /* Cambiado a un tono oscuro para contrastar con el fondo blanco */
+        font-size: 52px;
         line-height: 1.1;
-        margin-bottom: 25px;
+        margin: 0 0 25px 0;
         text-align: center;
         font-weight: 400;
       }
@@ -60,16 +56,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
         width: 100%;
-        padding: 16px 0;
+        padding: 16px;
         margin: 12px 0;
-        font-size: 1rem;
+        font-size: 16px;
         font-weight: 600;
         color: white;
         border: none;
         border-radius: 10px;
         cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         transition: transform 0.1s ease;
       }
       .btn:active {
@@ -85,10 +81,9 @@
         display: none;
       }
       #status {
-        margin-top: 18px;
-        font-size: 0.95rem;
+        margin-top: 20px;
         font-weight: 600;
-        min-height: 24px;
+        font-size: 14px;
       }
       .loading {
         color: #e67e22;
@@ -105,7 +100,7 @@
 
     <div class="card">
       <h2 class="subtituloI">Mis XV</h2>
-      <h1 class="cata">Caty</h1>
+      <h2 class="cata">Caty</h2>
       
       <!-- Botón Sacar Foto (Abre Cámara) -->
       <label for="cameraInput" class="btn btn-camera">📷 Sacar foto</label>
@@ -118,85 +113,155 @@
       <div id="status"></div>
     </div>
 
-    <!-- Formulario e iframe ocultos para envío optimizado -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-    <form id="uploadForm" method="POST" target="hidden_iframe" style="display:none;">
-      <input type="hidden" name="base64" id="formBase64">
-      <input type="hidden" name="fileName" id="formFileName">
-    </form>
-
     <script>
-      // === REEMPLAZA AQUÍ CON TU URL DE APPS SCRIPT ===
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9Wo_w1frxeEMICtWj735w0T4wq4xUnJ7SuIkH69M6w-MZhrePwi5dj_BE0kFKqgmu/exec";
-
-      const uploadForm = document.getElementById('uploadForm');
-      uploadForm.action = SCRIPT_URL;
-
       function processFile(input) {
         var file = input.files[0];
         if (!file) return;
 
         var statusDiv = document.getElementById('status');
         statusDiv.className = 'loading';
-        statusDiv.innerHTML = "⚡ Comprimiendo y optimizando foto...";
+        statusDiv.innerHTML = "Subiendo foto, por favor espera...";
 
-        // Redimensionar y comprimir la imagen en el cliente
-        resizeImage(file, 1280, 0.7, function(compressedBase64) {
-          statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
-
-          var fileName = "Foto_" + new Date().getTime() + ".jpg";
-
-          document.getElementById('formBase64').value = compressedBase64;
-          document.getElementById('formFileName').value = fileName;
-
-          // Enviar el formulario comprimido
-          uploadForm.submit();
-          input.value = ""; 
-        });
-      }
-
-      // Función que comprime la foto rápido antes de subirla
-      function resizeImage(file, maxWidth, quality, callback) {
         var reader = new FileReader();
         reader.onload = function(e) {
-          var img = new Image();
-          img.onload = function() {
-            var canvas = document.createElement('canvas');
-            var width = img.width;
-            var height = img.height;
+          var base64Data = e.target.result;
+          var fileName = "Foto_" + new Date().getTime() + "_" + file.name;
 
-            if (width > maxWidth) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Genera la imagen reducida en JPEG optimizado
-            var dataUrl = canvas.toDataURL('image/jpeg', quality);
-            callback(dataUrl);
-          };
-          img.src = e.target.result;
+          google.script.run
+            .withSuccessHandler(function(response) {
+              if (response.indexOf("Error") === -1) {
+                statusDiv.className = 'success';
+                statusDiv.innerHTML = "¡Foto subida con éxito!";
+              } else {
+                statusDiv.className = 'error';
+                statusDiv.innerHTML = response;
+              }
+              input.value = ""; // Limpiar el input
+            })
+            .withFailureHandler(function(err) {
+              statusDiv.className = 'error';
+              statusDiv.innerHTML = "Error de conexión: " + err.message;
+            })
+            .uploadFile(base64Data, fileName);
         };
+
         reader.readAsDataURL(file);
       }
-
-      // Confirmación recibida desde Google Apps Script
-      window.addEventListener('message', function(e) {
-        var statusDiv = document.getElementById('status');
-        if (e.data === 'SUCCESS') {
-          statusDiv.className = 'success';
-          statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
-        } else if (typeof e.data === 'string' && e.data.startsWith('ERROR:')) {
-          statusDiv.className = 'error';
-          statusDiv.innerHTML = "Error al subir: " + e.data.replace('ERROR:', '');
-        }
-      });
     </script>
 
   </body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subir Fotos a Google Drive</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f4f6f8;
+    }
+    .card {
+      background: white;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      color: white;
+      background-color: #007bff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-camera {
+      background-color: #28a745;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .loading { color: orange; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Subir Imagen</h2>
+
+    <!-- Botón para elegir archivo de la galería -->
+    <label for="fileUpload" class="btn">📁 Subir Foto</label>
+    <input type="file" id="fileUpload" accept="image/*">
+
+    <!-- Botón para tomar foto con la cámara directa (en dispositivos móviles) -->
+    <label for="cameraUpload" class="btn btn-camera">📷 Sacar Foto</label>
+    <input type="file" id="cameraUpload" accept="image/*" capture="environment">
+
+    <!-- Mensaje de estado -->
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // REEMPLAZA ESTA URL CON LA QUE TE DIO GOOGLE APPS SCRIPT
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaeOaWI1lET3ELyl0tWB-T1n00dCcjX2JAZJ0alLDA4vkz0EfwDcIVdovM9PK3BxiA/exec';
+
+    const fileUpload = document.getElementById('fileUpload');
+    const cameraUpload = document.getElementById('cameraUpload');
+    const statusDiv = document.getElementById('status');
+
+    fileUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    cameraUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+    function handleFile(file) {
+      if (!file) return;
+
+      statusDiv.className = 'loading';
+      statusDiv.innerText = 'Subiendo imagen a Google Drive... Por favor espera.';
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const payload = {
+          file: e.target.result,
+          fileName: file.name || `foto_${Date.now()}.jpg`
+        };
+
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.result === 'success') {
+            statusDiv.className = 'success';
+            statusDiv.innerText = '¡Imagen guardada exitosamente en Google Drive!';
+          } else {
+            throw new Error(data.error);
+          }
+        })
+        .catch(err => {
+          statusDiv.className = 'error';
+          statusDiv.innerText = 'Error al subir la imagen: ' + err.message;
+        });
+      };
+
+      reader.readAsDataURL(file);
+    }
+  </script>
+
+</body>
 </html>
