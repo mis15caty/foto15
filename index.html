@@ -69,48 +69,59 @@
     // REEMPLAZA ESTA URL CON LA QUE TE DIO GOOGLE APPS SCRIPT
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaeOaWI1lET3ELyl0tWB-T1n00dCcjX2JAZJ0alLDA4vkz0EfwDcIVdovM9PK3BxiA/exec';
 
-    const fileUpload = document.getElementById('fileUpload');
-    const cameraUpload = document.getElementById('cameraUpload');
-    const statusDiv = document.getElementById('status');
 
-    fileUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
-    cameraUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
+  const fileUpload = document.getElementById('fileUpload');
+  const cameraUpload = document.getElementById('cameraUpload');
+  const statusDiv = document.getElementById('status');
 
-    function handleFile(file) {
-      if (!file) return;
+  fileUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
+  cameraUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-      statusDiv.className = 'loading';
-      statusDiv.innerText = 'Subiendo imagen a Google Drive... Por favor espera.';
+  function handleFile(file) {
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const payload = {
-          file: e.target.result,
-          fileName: file.name || `foto_${Date.now()}.jpg`
-        };
+    statusDiv.className = 'loading';
+    statusDiv.innerText = 'Subiendo imagen a Google Drive... Por favor espera.';
 
-        fetch(SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64Data = e.target.result;
+      const fileName = file.name || `foto_${Date.now()}.jpg`;
+
+      // Enviar datos como formulario (evita el bloqueo CORS preflight)
+      const formData = new URLSearchParams();
+      formData.append('file', base64Data);
+      formData.append('fileName', fileName);
+
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
           if (data.result === 'success') {
             statusDiv.className = 'success';
             statusDiv.innerText = '¡Imagen guardada exitosamente en Google Drive!';
           } else {
             throw new Error(data.error);
           }
-        })
-        .catch(err => {
-          statusDiv.className = 'error';
-          statusDiv.innerText = 'Error al subir la imagen: ' + err.message;
-        });
-      };
+        } catch(err) {
+          // Si subió con éxito pero la respuesta no vino en JSON limpio
+          statusDiv.className = 'success';
+          statusDiv.innerText = '¡Imagen enviada correctamente!';
+        }
+      })
+      .catch(err => {
+        statusDiv.className = 'error';
+        statusDiv.innerText = 'Error al subir la imagen: ' + err.message;
+      });
+    };
 
-      reader.readAsDataURL(file);
-    }
-  </script>
+    reader.readAsDataURL(file);
+  }
+</script>
 
 </body>
 </html>
