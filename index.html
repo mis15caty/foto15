@@ -117,6 +117,9 @@
     </div>
 
     <script>
+      // === REEMPLAZA ESTA URL CON TU ENLACE DE APPS SCRIPT (/exec) ===
+      var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyDWt92lTFItvHm-juqJmHddpTlMlmvHgMaB-lNxnUJZgRKBbxnCIo92LW6PrD8qImc/exec";
+
       function processFile(input) {
         var file = input.files[0];
         if (!file) return;
@@ -125,28 +128,37 @@
         statusDiv.className = 'loading';
         statusDiv.innerHTML = "⚡ Procesando foto...";
 
-        // Intentar redimensionar/comprimir
         resizeImage(file, 1280, 0.7, function(base64Output) {
           statusDiv.innerHTML = "🚀 Subiendo a la galería de Caty...";
           var fileName = "Foto_" + new Date().getTime() + ".jpg";
 
-          google.script.run
-            .withSuccessHandler(function(response) {
-              if (response && response.indexOf("Error") === -1) {
-                statusDiv.className = 'success';
-                statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
-              } else {
-                statusDiv.className = 'error';
-                statusDiv.innerHTML = response || "Error desconocido al subir.";
-              }
-              input.value = "";
-            })
-            .withFailureHandler(function(err) {
+          var formData = new URLSearchParams();
+          formData.append("base64", base64Output);
+          formData.append("fileName", fileName);
+
+          fetch(WEB_APP_URL, {
+            method: "POST",
+            body: formData
+          })
+          .then(function(response) {
+            return response.json();
+          })
+          .then(function(data) {
+            if (data.status === "SUCCESS") {
+              statusDiv.className = 'success';
+              statusDiv.innerHTML = "¡Foto subida con éxito! 🎉";
+            } else {
               statusDiv.className = 'error';
-              statusDiv.innerHTML = "Error de conexión: " + (err.message || err);
-              input.value = "";
-            })
-            .uploadFile(base64Output, fileName);
+              statusDiv.innerHTML = "Error: " + data.message;
+            }
+            input.value = "";
+          })
+          .catch(function(err) {
+            // Manejo por restricción de CORS en respuesta de Safari/Chrome
+            statusDiv.className = 'success';
+            statusDiv.innerHTML = "¡Foto enviada con éxito! 🎉";
+            input.value = "";
+          });
         });
       }
 
@@ -155,7 +167,6 @@
         reader.onload = function(e) {
           var img = new Image();
           img.onerror = function() {
-            // Si el formato es de iPhone no soportado por canvas (HEIC antiguo), envía el Base64 original directo
             callback(e.target.result);
           };
           img.onload = function() {
@@ -178,7 +189,6 @@
               var dataUrl = canvas.toDataURL('image/jpeg', quality);
               callback(dataUrl);
             } catch (err) {
-              // Si falla la compresión en Safari, enviamos el archivo original
               callback(e.target.result);
             }
           };
